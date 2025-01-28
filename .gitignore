@@ -177,3 +177,4 @@ docker
 # 出力用のパッケージ
 grafana-data
 influxdb-data
+config.yml
