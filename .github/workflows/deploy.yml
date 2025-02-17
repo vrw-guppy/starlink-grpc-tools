@@ -16,10 +16,13 @@ jobs:
 
       - uses: vrw-guppy/actions/repo-info@main
         id: repo-info
+        with:
+          token: ${{ secrets.GH_TOKEN }}
 
       - name: Build Docker image
         uses: vrw-guppy/actions/docker@main
         with:
+          token: ${{ secrets.GH_TOKEN }}
           registry: ${{ secrets.DOCKER_GLOBAL_REGISTRY }}
           username: ${{ secrets.DOCKER_GLOBAL_USERNAME }}
           password: ${{ secrets.DOCKER_GLOBAL_PASSWORD }}
