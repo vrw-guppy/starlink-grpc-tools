@@ -1,0 +1,30 @@
+name: Docker Image Build
+on:
+  push:
+  release:
+    types:
+      - created
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: vrw-guppy/actions/repo-info@main
+        id: repo-info
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+
+      - name: Build Docker image
+        uses: vrw-guppy/actions/docker@main
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          registry: ${{ secrets.DOCKER_GLOBAL_REGISTRY }}
+          username: ${{ secrets.DOCKER_GLOBAL_USERNAME }}
+          password: ${{ secrets.DOCKER_GLOBAL_PASSWORD }}
+          image_name: ${{ steps.repo-info.outputs.name }}
+          push: true

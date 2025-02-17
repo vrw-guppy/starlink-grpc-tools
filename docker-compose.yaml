@@ -1,0 +1,53 @@
+version: '3'
+services:
+  influxdb:
+    image: influxdb:1.8
+    container_name: influxdb
+    ports:
+      - "38086:8086"
+    environment:
+      - INFLUXDB_DB=starlinkstat
+      - INFLUXDB_USER=${INFLUXDB_USERNAME}
+      - INFLUXDB_PASSWORD=${INFLUXDB_PASSWORD}
+    volumes:
+      - ./influxdb-data:/var/lib/influxdb
+    restart: always
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: grafana
+    depends_on:
+      - influxdb
+    ports:
+      - "33000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+    volumes:
+      - ./grafana-data:/var/lib/grafana
+    restart: always
+
+  starlink-grpc-tools:
+    build: .
+    depends_on:
+      - influxdb
+    environment:
+      - INFLUXDB_HOST=influxdb
+      - INFLUXDB_PORT=8086
+      - INFLUXDB_USER=${INFLUXDB_USERNAME}
+      - INFLUXDB_PWD=${INFLUXDB_PASSWORD}
+      - INFLUXDB_DB=starlinkstat
+    restart: always
+    command: ["dish_grpc_influx.py", "-v", "status alert_detail", "-t", "10"]
+
+  tunnel:
+    restart: always
+    image: cloudflare/cloudflared:2024.12.2
+    command: tunnel --no-autoupdate --config /etc/cloudflared/config.yml run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    volumes:
+      - ./config.yml:/etc/cloudflared/config.yml
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    profiles:
+      - tunnel
