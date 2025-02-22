@@ -88,6 +88,7 @@ This group holds information about the current state of the user terminal.
     to use GPS for position data.
 : **gps_enabled** : Boolean indicating whether or not the user terminal will
     use GPS for position data if and when it becomes ready.
+: **gps_sats** : Number of satellites actively being used.
 
 Obstruction detail status data
 ------------------------------
@@ -445,6 +446,7 @@ StatusDict = TypedDict(
         "is_snr_above_noise_floor": bool,
         "gps_ready": bool,
         "gps_enabled": bool,
+        "gps_sats": int,
     })
 
 ObstructionDict = TypedDict(
@@ -767,33 +769,10 @@ def status_data(
     Raises:
         GrpcError: Failed getting status info from the Starlink user terminal.
     """
-    if context is None:
-        context = ChannelContext()
-        context_created = True
-    else:
-        context_created = False
-
     try:
         status = get_status(context)
-        history = get_history(context)
     except (AttributeError, ValueError, grpc.RpcError) as e:
         raise GrpcError(e) from e
-    finally:
-        if context_created:
-            context.close()
-
-    # Latency info in status response appears to be broken, not sure about
-    # ping drop info, so get those from history response instead
-    pop_ping_drop_rate = None
-    pop_ping_latency_ms = None
-    latest_range = _compute_sample_range(history, 1)[0]
-    for latest_index in latest_range:
-        pop_ping_drop_rate = history.pop_ping_drop_rate[latest_index]
-        try:
-            pop_ping_latency_ms = history.pop_ping_latency_ms[latest_index]
-        except (AttributeError, IndexError, TypeError):
-            pass
-        break
 
     try:
         if status.HasField("outage"):
@@ -849,10 +828,10 @@ def status_data(
         "uptime": getattr(getattr(status, "device_state", None), "uptime_s", None),
         "snr": None,  # obsoleted in grpc service
         "seconds_to_first_nonempty_slot": getattr(status, "seconds_to_first_nonempty_slot", None),
-        "pop_ping_drop_rate": pop_ping_drop_rate,
+        "pop_ping_drop_rate": getattr(status, "pop_ping_drop_rate", None),
         "downlink_throughput_bps": getattr(status, "downlink_throughput_bps", None),
         "uplink_throughput_bps": getattr(status, "uplink_throughput_bps", None),
-        "pop_ping_latency_ms": pop_ping_latency_ms,
+        "pop_ping_latency_ms": getattr(status, "pop_ping_latency_ms", None),
         "alerts": alert_bits,
         "fraction_obstructed": getattr(obstruction_stats, "fraction_obstructed", None),
         "currently_obstructed": getattr(obstruction_stats, "currently_obstructed", None),
@@ -864,6 +843,7 @@ def status_data(
         "is_snr_above_noise_floor": getattr(status, "is_snr_above_noise_floor", None),
         "gps_ready": getattr(gps_stats, "gps_valid", None),
         "gps_enabled": None if inhibit_gps is None else not inhibit_gps,
+        "gps_sats": getattr(gps_stats, "gps_sats", None),
     }, {
         "wedges_fraction_obstructed[]": [None] * 12,  # obsoleted in grpc service
         "raw_wedges_fraction_obstructed[]": [None] * 12,  # obsoleted in grpc service
