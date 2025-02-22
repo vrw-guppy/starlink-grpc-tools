@@ -67,7 +67,7 @@
       "id": 1,
       "options": {
         "colorMode": "value",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
         "percentChangeColorMode": "standard",
@@ -355,25 +355,13 @@
               }
             ]
           },
-          "unit": "percentunit"
+          "unit": "none"
         },
         "overrides": [
           {
             "matcher": {
               "id": "byName",
-              "options": "Alerts count"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "none"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "obstrustion rate"
+              "options": "Obstrustion rate"
             },
             "properties": [
               {
@@ -399,7 +387,7 @@
         "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
-            "max"
+            "lastNotNull"
           ],
           "fields": "",
           "values": false
@@ -453,7 +441,49 @@
           "tags": []
         },
         {
-          "alias": "obstrustion rate",
+          "alias": "GPS satellites count",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "null"
+              ],
+              "type": "fill"
+            }
+          ],
+          "hide": false,
+          "measurement": "spacex.starlink.user_terminal.status",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "refId": "C",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "gps_sats"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "mean"
+              }
+            ]
+          ],
+          "tags": []
+        },
+        {
+          "alias": "Obstrustion rate",
           "datasource": {
             "type": "influxdb",
             "uid": "${datasource}"
@@ -495,7 +525,7 @@
           "tags": []
         }
       ],
-      "title": "Drop rate",
+      "title": "Others",
       "type": "stat"
     },
     {
@@ -930,7 +960,7 @@
               }
             ]
           },
-          "unit": "percentunit"
+          "unit": "none"
         },
         "overrides": [
           {
@@ -1027,7 +1057,7 @@
           "tags": []
         },
         {
-          "alias": "obstrustion rate",
+          "alias": "GPS satellites count",
           "datasource": {
             "type": "influxdb",
             "uid": "${datasource}"
@@ -1051,6 +1081,48 @@
           "orderByTime": "ASC",
           "policy": "default",
           "refId": "B",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "gps_sats"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "mean"
+              }
+            ]
+          ],
+          "tags": []
+        },
+        {
+          "alias": "obstrustion rate",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "null"
+              ],
+              "type": "fill"
+            }
+          ],
+          "hide": false,
+          "measurement": "spacex.starlink.user_terminal.status",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "refId": "C",
           "resultFormat": "time_series",
           "select": [
             [
@@ -1210,7 +1282,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 12,
+        "h": 18,
         "w": 12,
         "x": 12,
         "y": 16
@@ -1857,6 +1929,115 @@
       ],
       "title": "Quality stats",
       "type": "state-timeline"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "fillOpacity": 70,
+            "lineWidth": 0,
+            "spanNulls": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 28
+      },
+      "id": 13,
+      "options": {
+        "alignValue": "left",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "mergeValues": true,
+        "rowHeight": 0.9,
+        "showValue": "auto",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "alias": "gps_enabled",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "groupBy": [],
+          "measurement": "spacex.starlink.user_terminal.status",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT \"currently_obstructed\" FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter",
+          "rawQuery": false,
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "gps_enabled"
+                ],
+                "type": "field"
+              }
+            ]
+          ],
+          "tags": []
+        },
+        {
+          "alias": "gps_ready",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "groupBy": [],
+          "hide": false,
+          "measurement": "spacex.starlink.user_terminal.status",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT \"is_snr_above_noise_floor\" FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter",
+          "rawQuery": false,
+          "refId": "B",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "gps_ready"
+                ],
+                "type": "field"
+              }
+            ]
+          ],
+          "tags": []
+        }
+      ],
+      "title": "GPS stats",
+      "type": "state-timeline"
     }
   ],
   "refresh": "1m",
@@ -1892,6 +2073,6 @@
   "timezone": "browser",
   "title": "Starlink stats",
   "uid": "ee8qnraccoc8wd",
-  "version": 6,
+  "version": 9,
   "weekStart": ""
 }
