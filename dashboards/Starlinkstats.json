@@ -11,6 +11,12 @@
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
         "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
         "type": "dashboard"
       }
     ]
@@ -18,13 +24,14 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 3,
+  "id": 27,
   "links": [],
+  "liveNow": false,
   "panels": [
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "yWdr08NNz"
+        "uid": "${datasource}"
       },
       "fieldConfig": {
         "defaults": {
@@ -76,18 +83,59 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "11.4.0",
+      "pluginVersion": "9.3.8",
       "targets": [
         {
-          "alias": "downlink",
+          "alias": "Max downlink",
           "datasource": {
             "type": "influxdb",
-            "uid": "ee8qmvsruin7kc"
+            "uid": "${datasource}"
           },
           "groupBy": [
             {
               "params": [
-                "10s"
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "null"
+              ],
+              "type": "fill"
+            }
+          ],
+          "measurement": "spacex.starlink.user_terminal.status",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "downlink_throughput_bps"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "max"
+              }
+            ]
+          ],
+          "tags": []
+        },
+        {
+          "alias": "Max uplink",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
               ],
               "type": "time"
             },
@@ -108,54 +156,13 @@
             [
               {
                 "params": [
-                  "downlink_throughput_bps"
-                ],
-                "type": "field"
-              },
-              {
-                "params": [],
-                "type": "mean"
-              }
-            ]
-          ],
-          "tags": []
-        },
-        {
-          "alias": "uplink",
-          "datasource": {
-            "type": "influxdb",
-            "uid": "yWdr08NNz"
-          },
-          "groupBy": [
-            {
-              "params": [
-                "10s"
-              ],
-              "type": "time"
-            },
-            {
-              "params": [
-                "null"
-              ],
-              "type": "fill"
-            }
-          ],
-          "measurement": "spacex.starlink.user_terminal.status",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "A",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
                   "uplink_throughput_bps"
                 ],
                 "type": "field"
               },
               {
                 "params": [],
-                "type": "mean"
+                "type": "max"
               }
             ]
           ],
@@ -168,7 +175,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "yWdr08NNz"
+        "uid": "${datasource}"
       },
       "fieldConfig": {
         "defaults": {
@@ -176,6 +183,8 @@
             "mode": "thresholds"
           },
           "mappings": [],
+          "max": 100000000,
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -185,7 +194,7 @@
               },
               {
                 "color": "red",
-                "value": 80
+                "value": 100000000
               }
             ]
           },
@@ -203,18 +212,6 @@
                 "value": "percentunit"
               }
             ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "fraction obstructed"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "percentunit"
-              }
-            ]
           }
         ]
       },
@@ -224,7 +221,7 @@
         "x": 8,
         "y": 0
       },
-      "id": 4,
+      "id": 11,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -243,13 +240,13 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "11.4.0",
+      "pluginVersion": "9.3.8",
       "targets": [
         {
           "alias": "Max ping latency",
           "datasource": {
             "type": "influxdb",
-            "uid": "yWdr08NNz"
+            "uid": "${datasource}"
           },
           "groupBy": [
             {
@@ -280,7 +277,7 @@
               },
               {
                 "params": [],
-                "type": "mean"
+                "type": "max"
               }
             ]
           ],
@@ -290,7 +287,7 @@
           "alias": "Max ping drop rate",
           "datasource": {
             "type": "influxdb",
-            "uid": "ee8qmvsruin7kc"
+            "uid": "${datasource}"
           },
           "groupBy": [
             {
@@ -310,7 +307,7 @@
           "measurement": "spacex.starlink.user_terminal.status",
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "SELECT mean(\"pop_ping_drop_rate\") FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter GROUP BY time($__interval) fill(null)",
+          "query": "SELECT max(\"pop_ping_drop_rate\") FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter GROUP BY time($__interval) fill(null)",
           "rawQuery": false,
           "refId": "B",
           "resultFormat": "time_series",
@@ -324,7 +321,7 @@
               },
               {
                 "params": [],
-                "type": "mean"
+                "type": "max"
               }
             ]
           ],
@@ -337,7 +334,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "yWdr08NNz"
+        "uid": "${datasource}"
       },
       "fieldConfig": {
         "defaults": {
@@ -358,13 +355,13 @@
               }
             ]
           },
-          "unit": "none"
+          "unit": "percentunit"
         },
         "overrides": [
           {
             "matcher": {
               "id": "byName",
-              "options": "Alert count"
+              "options": "Alerts count"
             },
             "properties": [
               {
@@ -376,7 +373,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "fraction obstructed"
+              "options": "obstrustion rate"
             },
             "properties": [
               {
@@ -412,18 +409,18 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "11.4.0",
+      "pluginVersion": "9.3.8",
       "targets": [
         {
-          "alias": "alert count",
+          "alias": "Alerts count",
           "datasource": {
             "type": "influxdb",
-            "uid": "yWdr08NNz"
+            "uid": "${datasource}"
           },
           "groupBy": [
             {
               "params": [
-                "10s"
+                "$__interval"
               ],
               "type": "time"
             },
@@ -456,15 +453,15 @@
           "tags": []
         },
         {
-          "alias": "fraction obstructed",
+          "alias": "obstrustion rate",
           "datasource": {
             "type": "influxdb",
-            "uid": "ee8qmvsruin7kc"
+            "uid": "${datasource}"
           },
           "groupBy": [
             {
               "params": [
-                "10s"
+                "$__interval"
               ],
               "type": "time"
             },
@@ -479,9 +476,7 @@
           "measurement": "spacex.starlink.user_terminal.status",
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "SELECT mean(\"pop_ping_drop_rate\") FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter GROUP BY time($__interval) fill(null)",
-          "rawQuery": false,
-          "refId": "C",
+          "refId": "B",
           "resultFormat": "time_series",
           "select": [
             [
@@ -500,13 +495,13 @@
           "tags": []
         }
       ],
-      "title": "Alerts",
+      "title": "Drop rate",
       "type": "stat"
     },
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "yWdr08NNz"
+        "uid": "${datasource}"
       },
       "fieldConfig": {
         "defaults": {
@@ -514,13 +509,11 @@
             "mode": "palette-classic"
           },
           "custom": {
-            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
-            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 0,
             "gradientMode": "none",
@@ -529,18 +522,14 @@
               "tooltip": false,
               "viz": false
             },
-            "insertNulls": false,
-            "lineInterpolation": "smooth",
-            "lineStyle": {
-              "fill": "solid"
-            },
+            "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
             },
             "showPoints": "auto",
-            "spanNulls": 60000,
+            "spanNulls": 300000,
             "stacking": {
               "group": "A",
               "mode": "none"
@@ -559,7 +548,7 @@
               },
               {
                 "color": "red",
-                "value": 80
+                "value": 100000000
               }
             ]
           },
@@ -573,7 +562,7 @@
         "x": 0,
         "y": 4
       },
-      "id": 2,
+      "id": 10,
       "options": {
         "legend": {
           "calcs": [
@@ -591,18 +580,18 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "11.4.0",
+      "pluginVersion": "9.3.8",
       "targets": [
         {
-          "alias": "downlink bps",
+          "alias": "Downlink",
           "datasource": {
             "type": "influxdb",
-            "uid": "ee8qmvsruin7kc"
+            "uid": "${datasource}"
           },
           "groupBy": [
             {
               "params": [
-                "10s"
+                "$__interval"
               ],
               "type": "time"
             },
@@ -613,13 +602,12 @@
               "type": "fill"
             }
           ],
-          "hide": false,
           "measurement": "spacex.starlink.user_terminal.status",
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "SELECT -mean(\"downlink_throughput_bps\") AS \"downlink_throughput_bps\"\nFROM \"spacex.starlink.user_terminal.status\"\nWHERE $timeFilter\nGROUP BY time(10s) fill(null)",
+          "query": "SELECT mean(\"downlink_throughput_bps\")  * (-1) FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter GROUP BY time($__interval) fill(null)",
           "rawQuery": false,
-          "refId": "B",
+          "refId": "A",
           "resultFormat": "time_series",
           "select": [
             [
@@ -638,15 +626,15 @@
           "tags": []
         },
         {
-          "alias": "uplink bps",
+          "alias": "Uplink",
           "datasource": {
             "type": "influxdb",
-            "uid": "yWdr08NNz"
+            "uid": "${datasource}"
           },
           "groupBy": [
             {
               "params": [
-                "10s"
+                "$__interval"
               ],
               "type": "time"
             },
@@ -657,10 +645,13 @@
               "type": "fill"
             }
           ],
+          "hide": false,
           "measurement": "spacex.starlink.user_terminal.status",
           "orderByTime": "ASC",
           "policy": "default",
-          "refId": "A",
+          "query": "SELECT mean(\"uplink_throughput_bps\")  / 100 FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter GROUP BY time($__interval) fill(null)",
+          "rawQuery": false,
+          "refId": "B",
           "resultFormat": "time_series",
           "select": [
             [
@@ -676,7 +667,7 @@
               },
               {
                 "params": [
-                  " *(-1)"
+                  " * (-1)"
                 ],
                 "type": "math"
               }
@@ -691,7 +682,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "yWdr08NNz"
+        "uid": "${datasource}"
       },
       "fieldConfig": {
         "defaults": {
@@ -699,13 +690,11 @@
             "mode": "palette-classic"
           },
           "custom": {
-            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
-            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 0,
             "gradientMode": "none",
@@ -714,7 +703,6 @@
               "tooltip": false,
               "viz": false
             },
-            "insertNulls": false,
             "lineInterpolation": "smooth",
             "lineStyle": {
               "fill": "solid"
@@ -755,7 +743,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "ping drop rate"
+              "options": "Drop rate"
             },
             "properties": [
               {
@@ -800,15 +788,15 @@
       "pluginVersion": "11.4.0",
       "targets": [
         {
-          "alias": "ping latency",
+          "alias": "Ping",
           "datasource": {
             "type": "influxdb",
-            "uid": "yWdr08NNz"
+            "uid": "${datasource}"
           },
           "groupBy": [
             {
               "params": [
-                "10s"
+                "$__interval"
               ],
               "type": "time"
             },
@@ -822,8 +810,6 @@
           "measurement": "spacex.starlink.user_terminal.status",
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "SELECT mean(\"pop_ping_latency_ms\") FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter GROUP BY time($__interval) fill(null)",
-          "rawQuery": false,
           "refId": "A",
           "resultFormat": "time_series",
           "select": [
@@ -843,15 +829,15 @@
           "tags": []
         },
         {
-          "alias": "ping drop rate",
+          "alias": "Drop rate",
           "datasource": {
             "type": "influxdb",
-            "uid": "ee8qmvsruin7kc"
+            "uid": "${datasource}"
           },
           "groupBy": [
             {
               "params": [
-                "10s"
+                "$__interval"
               ],
               "type": "time"
             },
@@ -866,7 +852,7 @@
           "measurement": "spacex.starlink.user_terminal.status",
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "SELECT mean(\"pop_ping_drop_rate\") FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter GROUP BY time($__interval) fill(null)",
+          "query": "SELECT max(\"pop_ping_drop_rate\") FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter GROUP BY time($__interval) fill(null)",
           "rawQuery": false,
           "refId": "B",
           "resultFormat": "time_series",
@@ -893,7 +879,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "yWdr08NNz"
+        "uid": "${datasource}"
       },
       "fieldConfig": {
         "defaults": {
@@ -901,13 +887,11 @@
             "mode": "palette-classic"
           },
           "custom": {
-            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
-            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 0,
             "gradientMode": "none",
@@ -916,18 +900,14 @@
               "tooltip": false,
               "viz": false
             },
-            "insertNulls": false,
-            "lineInterpolation": "smooth",
-            "lineStyle": {
-              "fill": "solid"
-            },
+            "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
             },
             "showPoints": "auto",
-            "spanNulls": 60000,
+            "spanNulls": 300000,
             "stacking": {
               "group": "A",
               "mode": "none"
@@ -937,7 +917,6 @@
             }
           },
           "mappings": [],
-          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -951,22 +930,27 @@
               }
             ]
           },
-          "unit": "none"
+          "unit": "percentunit"
         },
         "overrides": [
           {
             "matcher": {
               "id": "byName",
-              "options": "fraction obstructed"
+              "options": "alerts count"
             },
             "properties": [
               {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#F2CC0C",
-                  "mode": "fixed"
-                }
-              },
+                "id": "unit",
+                "value": "none"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "obstrustion rate"
+            },
+            "properties": [
               {
                 "id": "unit",
                 "value": "percentunit"
@@ -981,7 +965,7 @@
         "x": 16,
         "y": 4
       },
-      "id": 9,
+      "id": 12,
       "options": {
         "legend": {
           "calcs": [
@@ -999,18 +983,18 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "11.4.0",
+      "pluginVersion": "9.3.8",
       "targets": [
         {
-          "alias": "alert count",
+          "alias": "alerts count",
           "datasource": {
             "type": "influxdb",
-            "uid": "yWdr08NNz"
+            "uid": "${datasource}"
           },
           "groupBy": [
             {
               "params": [
-                "10s"
+                "$__interval"
               ],
               "type": "time"
             },
@@ -1024,8 +1008,6 @@
           "measurement": "spacex.starlink.user_terminal.status",
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "SELECT mean(\"pop_ping_latency_ms\") FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter GROUP BY time($__interval) fill(null)",
-          "rawQuery": false,
           "refId": "A",
           "resultFormat": "time_series",
           "select": [
@@ -1045,15 +1027,15 @@
           "tags": []
         },
         {
-          "alias": "fraction obstructed",
+          "alias": "obstrustion rate",
           "datasource": {
             "type": "influxdb",
-            "uid": "ee8qmvsruin7kc"
+            "uid": "${datasource}"
           },
           "groupBy": [
             {
               "params": [
-                "10s"
+                "$__interval"
               ],
               "type": "time"
             },
@@ -1068,8 +1050,6 @@
           "measurement": "spacex.starlink.user_terminal.status",
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "SELECT mean(\"pop_ping_drop_rate\") FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter GROUP BY time($__interval) fill(null)",
-          "rawQuery": false,
           "refId": "B",
           "resultFormat": "time_series",
           "select": [
@@ -1089,12 +1069,13 @@
           "tags": []
         }
       ],
-      "title": "Alerts",
+      "title": "Drop rate",
       "type": "timeseries"
     },
     {
       "datasource": {
-        "uid": "yWdr08NNz"
+        "type": "influxdb",
+        "uid": "mw76P5cHk"
       },
       "fieldConfig": {
         "defaults": {
@@ -1103,16 +1084,9 @@
           },
           "custom": {
             "fillOpacity": 70,
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": 3600000,
             "lineWidth": 0,
             "spanNulls": false
           },
-          "fieldMinMax": false,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -1151,12 +1125,20 @@
       "pluginVersion": "11.4.0",
       "targets": [
         {
+          "alias": "hardware_version",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "mw76P5cHk"
+          },
           "groupBy": [],
+          "hide": false,
           "measurement": "spacex.starlink.user_terminal.status",
           "orderByTime": "ASC",
           "policy": "default",
-          "refId": "A",
-          "resultFormat": "table",
+          "query": "SELECT \"hardware_version\" FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter",
+          "rawQuery": false,
+          "refId": "B",
+          "resultFormat": "time_series",
           "select": [
             [
               {
@@ -1165,7 +1147,25 @@
                 ],
                 "type": "field"
               }
-            ],
+            ]
+          ],
+          "tags": []
+        },
+        {
+          "alias": "software_version",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "mw76P5cHk"
+          },
+          "groupBy": [],
+          "measurement": "spacex.starlink.user_terminal.status",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT \"software_version\" FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter",
+          "rawQuery": false,
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
             [
               {
                 "params": [
@@ -1183,7 +1183,8 @@
     },
     {
       "datasource": {
-        "uid": "yWdr08NNz"
+        "type": "influxdb",
+        "uid": "${datasource}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1192,16 +1193,9 @@
           },
           "custom": {
             "fillOpacity": 70,
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": 3600000,
             "lineWidth": 0,
             "spanNulls": false
           },
-          "fieldMinMax": false,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -1240,14 +1234,343 @@
       "pluginVersion": "11.4.0",
       "targets": [
         {
+          "alias": "alert_install_pending",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
           "groupBy": [],
           "measurement": "spacex.starlink.user_terminal.status",
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "SELECT \"alerts\", \"alert_power_supply_thermal_throttle\", \"alert_thermal_shutdown\", \"alert_unexpected_location\", \"alert_motors_stuck\", \"alert_low_motor_current\" FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter",
+          "query": "SELECT \"alert_install_pending\" FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter",
           "rawQuery": false,
           "refId": "A",
-          "resultFormat": "table",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "alert_install_pending"
+                ],
+                "type": "field"
+              }
+            ]
+          ],
+          "tags": []
+        },
+        {
+          "alias": "alert_dbf_telem_stale",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "groupBy": [],
+          "hide": false,
+          "measurement": "spacex.starlink.user_terminal.status",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT \"alert_dbf_telem_stale\" FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter",
+          "rawQuery": false,
+          "refId": "B",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "alert_dbf_telem_stale"
+                ],
+                "type": "field"
+              }
+            ]
+          ],
+          "tags": []
+        },
+        {
+          "alias": "alert_is_heating",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "groupBy": [],
+          "hide": false,
+          "measurement": "spacex.starlink.user_terminal.status",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT \"alert_is_heating\" FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter",
+          "rawQuery": false,
+          "refId": "C",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "alert_is_heating"
+                ],
+                "type": "field"
+              }
+            ]
+          ],
+          "tags": []
+        },
+        {
+          "alias": "alert_is_power_save_idle",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "groupBy": [],
+          "hide": false,
+          "measurement": "spacex.starlink.user_terminal.status",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT \"alert_is_power_save_idle\" FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter",
+          "rawQuery": false,
+          "refId": "D",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "alert_is_power_save_idle"
+                ],
+                "type": "field"
+              }
+            ]
+          ],
+          "tags": []
+        },
+        {
+          "alias": "alert_low_motor_current",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "groupBy": [],
+          "hide": false,
+          "measurement": "spacex.starlink.user_terminal.status",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT \"alert_low_motor_current\" FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter",
+          "rawQuery": false,
+          "refId": "E",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "alert_low_motor_current"
+                ],
+                "type": "field"
+              }
+            ]
+          ],
+          "tags": []
+        },
+        {
+          "alias": "alert_lower_signal_than_predicted",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "groupBy": [],
+          "hide": false,
+          "measurement": "spacex.starlink.user_terminal.status",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT \"alert_lower_signal_than_predicted\" FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter",
+          "rawQuery": false,
+          "refId": "F",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "alert_lower_signal_than_predicted"
+                ],
+                "type": "field"
+              }
+            ]
+          ],
+          "tags": []
+        },
+        {
+          "alias": "alert_mast_not_near_vertical",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "groupBy": [],
+          "hide": false,
+          "measurement": "spacex.starlink.user_terminal.status",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT \"alert_mast_not_near_vertical\" FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter",
+          "rawQuery": false,
+          "refId": "G",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "alert_mast_not_near_vertical"
+                ],
+                "type": "field"
+              }
+            ]
+          ],
+          "tags": []
+        },
+        {
+          "alias": "alert_motors_stuck",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "groupBy": [],
+          "hide": false,
+          "measurement": "spacex.starlink.user_terminal.status",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT \"alert_motors_stuck\" FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter",
+          "rawQuery": false,
+          "refId": "H",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "alert_motors_stuck"
+                ],
+                "type": "field"
+              }
+            ]
+          ],
+          "tags": []
+        },
+        {
+          "alias": "alert_motors_stuck",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "groupBy": [],
+          "hide": false,
+          "measurement": "spacex.starlink.user_terminal.status",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT \"alert_motors_stuck\" FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter",
+          "rawQuery": false,
+          "refId": "I",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "alert_motors_stuck"
+                ],
+                "type": "field"
+              }
+            ]
+          ],
+          "tags": []
+        },
+        {
+          "alias": "alert_moving_too_fast_for_policy",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "groupBy": [],
+          "hide": false,
+          "measurement": "spacex.starlink.user_terminal.status",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT \"alert_moving_too_fast_for_policy\" FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter",
+          "rawQuery": false,
+          "refId": "J",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "alert_moving_too_fast_for_policy"
+                ],
+                "type": "field"
+              }
+            ]
+          ],
+          "tags": []
+        },
+        {
+          "alias": "alert_moving_while_not_mobile",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "groupBy": [],
+          "hide": false,
+          "measurement": "spacex.starlink.user_terminal.status",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT \"alert_moving_while_not_mobile\" FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter",
+          "rawQuery": false,
+          "refId": "K",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "alert_moving_while_not_mobile"
+                ],
+                "type": "field"
+              }
+            ]
+          ],
+          "tags": []
+        },
+        {
+          "alias": "alert_obstruction_map_reset",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "groupBy": [],
+          "hide": false,
+          "measurement": "spacex.starlink.user_terminal.status",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT \"alert_obstruction_map_reset\" FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter",
+          "rawQuery": false,
+          "refId": "L",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "alert_obstruction_map_reset"
+                ],
+                "type": "field"
+              }
+            ]
+          ],
+          "tags": []
+        },
+        {
+          "alias": "alert_power_supply_thermal_throttle",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "groupBy": [],
+          "hide": false,
+          "measurement": "spacex.starlink.user_terminal.status",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT \"alert_power_supply_thermal_throttle\" FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter",
+          "rawQuery": false,
+          "refId": "M",
+          "resultFormat": "time_series",
           "select": [
             [
               {
@@ -1256,47 +1579,53 @@
                 ],
                 "type": "field"
               }
-            ],
+            ]
+          ],
+          "tags": []
+        },
+        {
+          "alias": "alert_roaming",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "groupBy": [],
+          "hide": false,
+          "measurement": "spacex.starlink.user_terminal.status",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT \"alert_roaming\" FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter",
+          "rawQuery": false,
+          "refId": "N",
+          "resultFormat": "time_series",
+          "select": [
             [
               {
                 "params": [
-                  "alert_thermal_shutdown"
+                  "alert_roaming"
                 ],
                 "type": "field"
               }
-            ],
-            [
-              {
-                "params": [
-                  "alert_unexpected_location"
-                ],
-                "type": "field"
-              }
-            ],
-            [
-              {
-                "params": [
-                  "alert_motors_stuck"
-                ],
-                "type": "field"
-              }
-            ],
-            [
-              {
-                "params": [
-                  "alert_low_motor_current"
-                ],
-                "type": "field"
-              }
-            ],
-            [
-              {
-                "params": [
-                  "alert_install_pending"
-                ],
-                "type": "field"
-              }
-            ],
+            ]
+          ],
+          "tags": []
+        },
+        {
+          "alias": "alert_slow_ethernet_speeds",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "groupBy": [],
+          "hide": false,
+          "measurement": "spacex.starlink.user_terminal.status",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT \"alert_slow_ethernet_speeds\" FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter",
+          "rawQuery": false,
+          "refId": "O",
+          "resultFormat": "time_series",
+          "select": [
             [
               {
                 "params": [
@@ -1304,11 +1633,111 @@
                 ],
                 "type": "field"
               }
-            ],
+            ]
+          ],
+          "tags": []
+        },
+        {
+          "alias": "alert_slow_ethernet_speeds_100",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "groupBy": [],
+          "hide": false,
+          "measurement": "spacex.starlink.user_terminal.status",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT \"alert_slow_ethernet_speeds_100\" FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter",
+          "rawQuery": false,
+          "refId": "P",
+          "resultFormat": "time_series",
+          "select": [
             [
               {
                 "params": [
                   "alert_slow_ethernet_speeds_100"
+                ],
+                "type": "field"
+              }
+            ]
+          ],
+          "tags": []
+        },
+        {
+          "alias": "alert_thermal_shutdown",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "groupBy": [],
+          "hide": false,
+          "measurement": "spacex.starlink.user_terminal.status",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT \"alert_thermal_shutdown\" FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter",
+          "rawQuery": true,
+          "refId": "Q",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "alert_thermal_shutdown"
+                ],
+                "type": "field"
+              }
+            ]
+          ],
+          "tags": []
+        },
+        {
+          "alias": "alert_thermal_throttle",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "groupBy": [],
+          "hide": false,
+          "measurement": "spacex.starlink.user_terminal.status",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT \"alert_thermal_throttle\" FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter",
+          "rawQuery": false,
+          "refId": "R",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "alert_thermal_throttle"
+                ],
+                "type": "field"
+              }
+            ]
+          ],
+          "tags": []
+        },
+        {
+          "alias": "alert_unexpected_location",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "groupBy": [],
+          "hide": false,
+          "measurement": "spacex.starlink.user_terminal.status",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT \"alert_unexpected_location\" FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter",
+          "rawQuery": false,
+          "refId": "S",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "alert_unexpected_location"
                 ],
                 "type": "field"
               }
@@ -1322,7 +1751,8 @@
     },
     {
       "datasource": {
-        "uid": "yWdr08NNz"
+        "type": "influxdb",
+        "uid": "${datasource}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1331,16 +1761,9 @@
           },
           "custom": {
             "fillOpacity": 70,
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": 3600000,
             "lineWidth": 0,
             "spanNulls": false
           },
-          "fieldMinMax": false,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -1379,21 +1802,20 @@
       "pluginVersion": "11.4.0",
       "targets": [
         {
+          "alias": "currently_obstructed",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
           "groupBy": [],
           "measurement": "spacex.starlink.user_terminal.status",
           "orderByTime": "ASC",
           "policy": "default",
+          "query": "SELECT \"currently_obstructed\" FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter",
+          "rawQuery": false,
           "refId": "A",
-          "resultFormat": "table",
+          "resultFormat": "time_series",
           "select": [
-            [
-              {
-                "params": [
-                  "state"
-                ],
-                "type": "field"
-              }
-            ],
             [
               {
                 "params": [
@@ -1401,7 +1823,26 @@
                 ],
                 "type": "field"
               }
-            ],
+            ]
+          ],
+          "tags": []
+        },
+        {
+          "alias": "is_snr_above_noise_floor",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "groupBy": [],
+          "hide": false,
+          "measurement": "spacex.starlink.user_terminal.status",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT \"is_snr_above_noise_floor\" FROM \"spacex.starlink.user_terminal.status\" WHERE $timeFilter",
+          "rawQuery": false,
+          "refId": "B",
+          "resultFormat": "time_series",
+          "select": [
             [
               {
                 "params": [
@@ -1418,12 +1859,30 @@
       "type": "state-timeline"
     }
   ],
-  "preload": false,
   "refresh": "1m",
-  "schemaVersion": 40,
+  "schemaVersion": 37,
+  "style": "dark",
   "tags": [],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "InfluxDB",
+          "value": "InfluxDB"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "influxdb",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      }
+    ]
   },
   "time": {
     "from": "now-30m",
@@ -1433,6 +1892,6 @@
   "timezone": "browser",
   "title": "Starlink stats",
   "uid": "ee8qnraccoc8wd",
-  "version": 23,
+  "version": 6,
   "weekStart": ""
 }
