@@ -153,22 +153,29 @@ their nature, but the field names are pretty self-explanatory.
     1024) in *alerts*.
 : **alert_moving_while_not_mobile** : Alert corresponding with bit 11 (bit mask
     2048) in *alerts*.
+    **OBSOLETE**: This alert is no longer generated.
 : **alert_moving_fast_while_not_aviation** : Alert corresponding with bit 12
     (bit mask 4096) in *alerts*.
-    **OBSOLETE**: This alert is no longer generated, presumably in preference
-    of *alert_moving_too_fast_for_policy*.
+    **OBSOLETE**: This alert is no longer generated.
 : **alert_dbf_telem_stale** : Alert corresponding with bit 13 (bit mask 8192)
     in *alerts*.
 : **alert_moving_too_fast_for_policy** : Alert corresponding with bit 14 (bit
     mask 16384) in *alerts*.
+    **OBSOLETE**: This alert is no longer generated.
 : **alert_low_motor_current** : Alert corresponding with bit 15 (bit mask
     32768) in *alerts*.
-: **lower_signal_than_predicted** : Alert corresponding with bit 16 (bit mask
-    65536) in *alerts*.
-: **slow_ethernet_speeds_100** : Alert corresponding with bit 17 (bit mask
-    131072) in *alerts*.
-: **obstruction_map_reset** : Alert corresponding with bit 18 (bit mask
+: **alert_lower_signal_than_predicted** : Alert corresponding with bit 16 (bit
+    mask 65536) in *alerts*.
+: **alert_slow_ethernet_speeds_100** : Alert corresponding with bit 17 (bit
+    mask 131072) in *alerts*.
+: **alert_obstruction_map_reset** : Alert corresponding with bit 18 (bit mask
     262144) in *alerts*.
+: **alert_dish_water_detected** : Alert corresponding with bit 19 (bit mask
+    524288) in *alerts*.
+: **alert_router_water_detected** : Alert corresponding with bit 20 (bit mask
+    1048576) in *alerts*.
+: **alert_upsu_router_port_slow** : Alert corresponding with bit 21 (bit mask
+    2097152) in *alerts*.
 
 Location data
 -------------
@@ -405,15 +412,19 @@ from typing_extensions import TypedDict, get_args
 import grpc
 
 try:
-    from yagrc import importer, reflector
-    importer.add_lazy_packages(["spacex_api.device"])
-    imports_pending = True
-except (ImportError, AttributeError):
+    # Use generated protocol modules if present
+    from spacex_api.device.device_pb2_grpc import DeviceStub
+    from spacex_api.device.device_pb2 import Request
+    from spacex_api.device.dish_pb2 import DishAlerts, DishOutage
     imports_pending = False
-
-from spacex_api.device import device_pb2
-from spacex_api.device import device_pb2_grpc
-from spacex_api.device import dish_pb2
+except ImportError:
+    # Otherwise, use yagrc to pull protocol classes via reflection
+    from yagrc import reflector
+    DeviceStub = None
+    Request = None
+    DishAlerts = None
+    DishOutage = None
+    imports_pending = True
 
 # Max wait time for gRPC request completion, in seconds. This is just to
 # prevent hang if the connection goes dead without closing.
@@ -569,19 +580,31 @@ def _field_types(hint_type):
 
 
 def resolve_imports(channel: grpc.Channel):
+    """Resolve protocol classes using grpc reflection.
+
+    Args:
+        channel (grpc.Channel): Channel to reflection server.
+
+    Raises:
+        grpc.RpcError: Communication error.
+        GrpcError: Reflection service error.
+    """
+    grclient = reflector.GrpcReflectionClient()
     try:
-        importer.resolve_lazy_imports(channel)
-    except reflector.ServiceError:
-        # "temporary" backwards compatibility hack: try old package name
-        bchack_importer = importer.GrpcImporter()
-        bchack_importer.configure(channel, filenames=["spacex/api/device/device.proto", "spacex/api/device/dish.proto"])
-        global device_pb2
-        global device_pb2_grpc
-        global dish_pb2
-        from spacex.api.device import device_pb2
-        from spacex.api.device import device_pb2_grpc
-        from spacex.api.device import dish_pb2
-        # end backwards compatibility hack
+        grclient.load_protocols(channel, symbols=["SpaceX.API.Device.Device"])
+
+        global DeviceStub
+        global Request
+        global DishAlerts
+        global DishOutage
+
+        DeviceStub = grclient.service_stub_class("SpaceX.API.Device.Device")
+        Request = grclient.message_class("SpaceX.API.Device.Request")
+        DishAlerts = grclient.message_class("SpaceX.API.Device.DishAlerts")
+        DishOutage = grclient.message_class("SpaceX.API.Device.DishOutage")
+    except (reflector.ServiceError, KeyError) as e:
+        raise GrpcError("Reflection service error") from e
+
     global imports_pending
     imports_pending = False
 
@@ -680,7 +703,7 @@ def status_field_names(context: Optional[ChannelContext] = None):
             raise GrpcError(e) from e
     alert_names = []
     try:
-        for field in dish_pb2.DishAlerts.DESCRIPTOR.fields:
+        for field in DishAlerts.DESCRIPTOR.fields:
             alert_names.append("alert_" + field.name)
     except AttributeError:
         pass
@@ -713,7 +736,7 @@ def status_field_types(context: Optional[ChannelContext] = None):
             raise GrpcError(e) from e
     num_alerts = 0
     try:
-        num_alerts = len(dish_pb2.DishAlerts.DESCRIPTOR.fields)
+        num_alerts = len(DishAlerts.DESCRIPTOR.fields)
     except AttributeError:
         pass
     return (_field_types(StatusDict), _field_types(ObstructionDict), [bool] * num_alerts)
@@ -733,12 +756,13 @@ def get_status(context: Optional[ChannelContext] = None):
         AttributeError, ValueError: Protocol error. Either the target is not a
             Starlink user terminal or the grpc protocol has changed in a way
             this module cannot handle.
+        GrpcError: Reflection service error.
     """
     def grpc_call(channel):
         if imports_pending:
             resolve_imports(channel)
-        stub = device_pb2_grpc.DeviceStub(channel)
-        response = stub.Handle(device_pb2.Request(get_status={}), timeout=REQUEST_TIMEOUT)
+        stub = DeviceStub(channel)
+        response = stub.Handle(Request(get_status={}), timeout=REQUEST_TIMEOUT)
         return response.dish_get_status
 
     return call_with_channel(grpc_call, context=context)
@@ -788,12 +812,12 @@ def status_data(
 
     try:
         if status.HasField("outage"):
-            if status.outage.cause == dish_pb2.DishOutage.Cause.NO_SCHEDULE:
+            if status.outage.cause == DishOutage.Cause.NO_SCHEDULE:
                 # Special case translate this to equivalent old name
                 state = "SEARCHING"
             else:
                 try:
-                    state = dish_pb2.DishOutage.Cause.Name(status.outage.cause)
+                    state = DishOutage.Cause.Name(status.outage.cause)
                 except ValueError:
                     # Unlikely, but possible if dish is running newer firmware
                     # than protocol data pulled via reflection
@@ -897,12 +921,13 @@ def get_location(context: Optional[ChannelContext] = None):
         AttributeError, ValueError: Protocol error. Either the target is not a
             Starlink user terminal or the grpc protocol has changed in a way
             this module cannot handle.
+        GrpcError: Reflection service error.
     """
     def grpc_call(channel):
         if imports_pending:
             resolve_imports(channel)
-        stub = device_pb2_grpc.DeviceStub(channel)
-        response = stub.Handle(device_pb2.Request(get_location={}), timeout=REQUEST_TIMEOUT)
+        stub = DeviceStub(channel)
+        response = stub.Handle(Request(get_location={}), timeout=REQUEST_TIMEOUT)
         return response.get_location
 
     return call_with_channel(grpc_call, context=context)
@@ -1036,12 +1061,13 @@ def get_history(context: Optional[ChannelContext] = None):
         AttributeError, ValueError: Protocol error. Either the target is not a
             Starlink user terminal or the grpc protocol has changed in a way
             this module cannot handle.
+        GrpcError: Reflection service error.
     """
     def grpc_call(channel: grpc.Channel):
         if imports_pending:
             resolve_imports(channel)
-        stub = device_pb2_grpc.DeviceStub(channel)
-        response = stub.Handle(device_pb2.Request(get_history={}), timeout=REQUEST_TIMEOUT)
+        stub = DeviceStub(channel)
+        response = stub.Handle(Request(get_history={}), timeout=REQUEST_TIMEOUT)
         return response.dish_get_history
 
     return call_with_channel(grpc_call, context=context)
@@ -1536,12 +1562,13 @@ def get_obstruction_map(context: Optional[ChannelContext] = None):
         AttributeError, ValueError: Protocol error. Either the target is not a
             Starlink user terminal or the grpc protocol has changed in a way
             this module cannot handle.
+        GrpcError: Reflection service error.
     """
     def grpc_call(channel: grpc.Channel):
         if imports_pending:
             resolve_imports(channel)
-        stub = device_pb2_grpc.DeviceStub(channel)
-        response = stub.Handle(device_pb2.Request(dish_get_obstruction_map={}),
+        stub = DeviceStub(channel)
+        response = stub.Handle(Request(dish_get_obstruction_map={}),
                                timeout=REQUEST_TIMEOUT)
         return response.dish_get_obstruction_map
 
@@ -1594,8 +1621,8 @@ def reset_obstruction_map(context: Optional[ChannelContext] = None):
     def grpc_call(channel: grpc.Channel) -> None:
         if imports_pending:
             resolve_imports(channel)
-        stub = device_pb2_grpc.DeviceStub(channel)
-        stub.Handle(device_pb2.Request(dish_clear_obstruction_map={}), timeout=REQUEST_TIMEOUT)
+        stub = DeviceStub(channel)
+        stub.Handle(Request(dish_clear_obstruction_map={}), timeout=REQUEST_TIMEOUT)
         # response is empty message in this case, so just ignore it
 
     try:
@@ -1619,8 +1646,8 @@ def reboot(context: Optional[ChannelContext] = None) -> None:
     def grpc_call(channel: grpc.Channel) -> None:
         if imports_pending:
             resolve_imports(channel)
-        stub = device_pb2_grpc.DeviceStub(channel)
-        stub.Handle(device_pb2.Request(reboot={}), timeout=REQUEST_TIMEOUT)
+        stub = DeviceStub(channel)
+        stub.Handle(Request(reboot={}), timeout=REQUEST_TIMEOUT)
         # response is empty message in this case, so just ignore it
 
     try:
@@ -1646,8 +1673,8 @@ def set_stow_state(unstow: bool = False, context: Optional[ChannelContext] = Non
     def grpc_call(channel: grpc.Channel) -> None:
         if imports_pending:
             resolve_imports(channel)
-        stub = device_pb2_grpc.DeviceStub(channel)
-        stub.Handle(device_pb2.Request(dish_stow={"unstow": unstow}), timeout=REQUEST_TIMEOUT)
+        stub = DeviceStub(channel)
+        stub.Handle(Request(dish_stow={"unstow": unstow}), timeout=REQUEST_TIMEOUT)
         # response is empty message in this case, so just ignore it
 
     try:
@@ -1679,8 +1706,8 @@ def get_sleep_config(context: Optional[ChannelContext] = None) -> Tuple[int, int
     def grpc_call(channel: grpc.Channel):
         if imports_pending:
             resolve_imports(channel)
-        stub = device_pb2_grpc.DeviceStub(channel)
-        response = stub.Handle(device_pb2.Request(dish_get_config={}), timeout=REQUEST_TIMEOUT)
+        stub = DeviceStub(channel)
+        response = stub.Handle(Request(dish_get_config={}), timeout=REQUEST_TIMEOUT)
         return response.dish_get_config.dish_config
 
     config = call_with_channel(grpc_call, context=context)
@@ -1718,8 +1745,8 @@ def set_sleep_config(start: int,
     def grpc_call(channel: grpc.Channel) -> None:
         if imports_pending:
             resolve_imports(channel)
-        stub = device_pb2_grpc.DeviceStub(channel)
-        stub.Handle(device_pb2.Request(
+        stub = DeviceStub(channel)
+        stub.Handle(Request(
             dish_power_save={
                 "power_save_start_minutes": start,
                 "power_save_duration_minutes": duration,
@@ -1753,8 +1780,8 @@ def set_gps_config(enable: bool, context: Optional[ChannelContext] = None) -> bo
     def grpc_call(channel: grpc.Channel) -> None:
         if imports_pending:
             resolve_imports(channel)
-        stub = device_pb2_grpc.DeviceStub(channel)
-        response = stub.Handle(device_pb2.Request(dish_inhibit_gps={"inhibit_gps": not enable}),
+        stub = DeviceStub(channel)
+        response = stub.Handle(Request(dish_inhibit_gps={"inhibit_gps": not enable}),
                                timeout=REQUEST_TIMEOUT)
         return not response.dish_inhibit_gps.inhibit_gps
 
