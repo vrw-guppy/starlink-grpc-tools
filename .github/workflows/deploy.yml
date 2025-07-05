@@ -14,17 +14,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - uses: vrw-guppy/actions/repo-info@main
-        id: repo-info
-        with:
-          token: ${{ secrets.GH_TOKEN }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker image
-        uses: vrw-guppy/actions/docker@main
+      - name: Log in to Docker Registry
+        uses: docker/login-action@v3
         with:
-          token: ${{ secrets.GH_TOKEN }}
           registry: ${{ secrets.DOCKER_GLOBAL_REGISTRY }}
           username: ${{ secrets.DOCKER_GLOBAL_USERNAME }}
           password: ${{ secrets.DOCKER_GLOBAL_PASSWORD }}
-          image_name: ${{ steps.repo-info.outputs.name }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
           push: true
+          tags: |
+            ${{ secrets.DOCKER_GLOBAL_REGISTRY }}/starlink-grpc-tools:${{ github.event.release.tag_name != '' && github.event.release.tag_name || github.ref_name }}
+            ${{ secrets.DOCKER_GLOBAL_REGISTRY }}/starlink-grpc-tools:latest
