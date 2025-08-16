@@ -32,11 +32,14 @@ jobs:
           REGISTRY="${{ secrets.DOCKER_GLOBAL_REGISTRY }}"
           echo "{\"insecure-registries\":[\"$REGISTRY\"]}" | sudo tee /etc/docker/daemon.json
           
+          # Verify the configuration was written correctly
+          cat /etc/docker/daemon.json
+          
           # Restart Docker daemon
           sudo systemctl restart docker
           # Wait for Docker to be ready
           sleep 5
-          docker info
+          docker info | grep -A5 "Insecure Registries"
 
       - name: Manual Docker login (skip TLS)
         run: |
