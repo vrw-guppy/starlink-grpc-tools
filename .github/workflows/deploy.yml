@@ -22,10 +22,6 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:k8s
 
-      # Docker Buildx をセットアップ
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       - name: Configure insecure registry
         run: |
           # Configure Docker daemon to allow insecure registry
@@ -38,8 +34,17 @@ jobs:
           # Restart Docker daemon
           sudo systemctl restart docker
           # Wait for Docker to be ready
-          sleep 5
+          sleep 10
           docker info | grep -A5 "Insecure Registries"
+
+      # Docker Buildx をセットアップ (insecure registry 用に設定)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          config-inline: |
+            [registry."${{ secrets.DOCKER_GLOBAL_REGISTRY }}"]
+              http = true
+              insecure = true
 
       - name: Manual Docker login (skip TLS)
         run: |
