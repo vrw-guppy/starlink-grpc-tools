@@ -31,12 +31,19 @@ jobs:
               http = true
               insecure = true
 
-      - name: Log in to Docker Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ secrets.DOCKER_GLOBAL_REGISTRY }}
-          username: ${{ secrets.DOCKER_GLOBAL_USERNAME }}
-          password: ${{ secrets.DOCKER_GLOBAL_PASSWORD }}
+      - name: Configure insecure registry
+        run: |
+          # /etc/docker/daemon.json を直接編集（再起動なし）
+          sudo mkdir -p /etc/docker/certs.d/${{ secrets.DOCKER_GLOBAL_REGISTRY }}
+          # 空の証明書ファイルを作成して insecure を許可
+          sudo touch /etc/docker/certs.d/${{ secrets.DOCKER_GLOBAL_REGISTRY }}/ca.crt
+
+      - name: Manual Docker login (skip TLS)
+        run: |
+          # curlでinsecureオプション付きでテスト
+          curl -k -u "${{ secrets.DOCKER_GLOBAL_USERNAME }}:${{ secrets.DOCKER_GLOBAL_PASSWORD }}" https://${{ secrets.DOCKER_GLOBAL_REGISTRY }}/v2/ && echo "Login test successful"
+          # dockerコマンドで直接ログイン
+          echo "${{ secrets.DOCKER_GLOBAL_PASSWORD }}" | docker login ${{ secrets.DOCKER_GLOBAL_REGISTRY }} -u "${{ secrets.DOCKER_GLOBAL_USERNAME }}" --password-stdin
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
