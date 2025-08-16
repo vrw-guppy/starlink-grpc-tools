@@ -15,90 +15,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Tailscale
-        uses: tailscale/github-action@v3
-        with:
-          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
-          tags: tag:k8s
-
-      - name: Configure insecure registry
-        run: |
-          # Configure Docker daemon to allow insecure registry
-          REGISTRY="${{ secrets.DOCKER_GLOBAL_REGISTRY }}"
-          echo "{\"insecure-registries\":[\"$REGISTRY\"]}" | sudo tee /etc/docker/daemon.json
-          
-          # Verify the configuration was written correctly
-          cat /etc/docker/daemon.json
-          
-          # Check Docker daemon status before restart
-          echo "=== Docker status before restart ==="
-          sudo systemctl status docker --no-pager || echo "Docker status check failed"
-          
-          # Validate JSON syntax
-          echo "=== Validating daemon.json syntax ==="
-          python3 -m json.tool /etc/docker/daemon.json
-          
-          # Restart Docker daemon with error handling
-          echo "=== Restarting Docker daemon ==="
-          if ! sudo systemctl restart docker; then
-            echo "=== Docker restart failed - collecting diagnostic information ==="
-            
-            # Show systemctl status
-            echo "--- systemctl status docker ---"
-            sudo systemctl status docker --no-pager --lines=50
-            
-            # Show journalctl logs
-            echo "--- journalctl logs for docker service ---"
-            sudo journalctl -xeu docker.service --no-pager --lines=50
-            
-            # Show daemon.json content
-            echo "--- /etc/docker/daemon.json content ---"
-            cat /etc/docker/daemon.json
-            
-            # Check for daemon.json syntax issues
-            echo "--- JSON syntax validation ---"
-            python3 -c "import json; print('JSON is valid' if json.load(open('/etc/docker/daemon.json')) else 'JSON is invalid')"
-            
-            # Show Docker version and system info
-            echo "--- Docker version ---"
-            docker --version || echo "Docker version check failed"
-            
-            echo "--- System information ---"
-            uname -a
-            cat /etc/os-release
-            
-            exit 1
-          fi
-          
-          # Wait for Docker to be ready
-          echo "=== Waiting for Docker to be ready ==="
-          sleep 10
-          
-          # Verify Docker is running and show insecure registries
-          echo "=== Verifying Docker configuration ==="
-          if docker info | grep -A5 "Insecure Registries"; then
-            echo "Docker insecure registry configuration verified successfully"
-          else
-            echo "Warning: Could not verify insecure registry configuration"
-            docker info || echo "Docker info command failed"
-          fi
-
-      # Docker Buildx をセットアップ (insecure registry 用に設定)
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        with:
-          config-inline: |
-            [registry."${{ secrets.DOCKER_GLOBAL_REGISTRY }}"]
-              http = true
-              insecure = true
 
-      - name: Manual Docker login (skip TLS)
-        run: |
-          # curlでinsecureオプション付きでテスト
-          curl -k -u "${{ secrets.DOCKER_GLOBAL_USERNAME }}:${{ secrets.DOCKER_GLOBAL_PASSWORD }}" https://${{ secrets.DOCKER_GLOBAL_REGISTRY }}/v2/ && echo "Login test successful"
-          # dockerコマンドで直接ログイン
-          echo "${{ secrets.DOCKER_GLOBAL_PASSWORD }}" | docker login ${{ secrets.DOCKER_GLOBAL_REGISTRY }} -u "${{ secrets.DOCKER_GLOBAL_USERNAME }}" --password-stdin
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -106,5 +31,5 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ secrets.DOCKER_GLOBAL_REGISTRY }}/starlink-grpc-tools:${{ github.event.release.tag_name != '' && github.event.release.tag_name || github.ref_name }}
-            ${{ secrets.DOCKER_GLOBAL_REGISTRY }}/starlink-grpc-tools:latest
+            ghcr.io/${{ github.repository }}:${{ github.event.release.tag_name != '' && github.event.release.tag_name || github.ref_name }}
+            ghcr.io/${{ github.repository }}:latest
