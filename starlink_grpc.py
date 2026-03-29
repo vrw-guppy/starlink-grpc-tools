@@ -582,6 +582,9 @@ def _field_types(hint_type):
 def resolve_imports(channel: grpc.Channel):
     """Resolve protocol classes using grpc reflection.
 
+    This is primarily meant for internal use and will be called on the first
+    operation that needs it.
+
     Args:
         channel (grpc.Channel): Channel to reflection server.
 
@@ -655,7 +658,7 @@ class ChannelContext:
 
 
 def call_with_channel(function, *args, context: Optional[ChannelContext] = None, **kwargs):
-    """Call a function with a channel object.
+    """Call a function with a `grpc.Channel` object.
 
     Args:
         function: Function to call with channel as first arg.
@@ -663,6 +666,11 @@ def call_with_channel(function, *args, context: Optional[ChannelContext] = None,
         context (ChannelContext): Optionally provide a channel for (re)use.
             If not set, a new default channel will be used and then closed.
         kwargs: Additional keyword args to pass to function.
+
+    Raises:
+        Nothing by itself, but will pass through any exception thrown by
+        `function`, which will probably include `grpc.RpcError` and may include
+        `GrpcError`, `AttributeError`, and `ValueError` when using reflection.
     """
     if context is None:
         with grpc.insecure_channel("192.168.100.1:9200") as channel:
@@ -1699,9 +1707,6 @@ def get_sleep_config(context: Optional[ChannelContext] = None) -> Tuple[int, int
 
     Raises:
         GrpcError: Communication or service error.
-        AttributeError, ValueError: Protocol error. Either the target is not a
-            Starlink user terminal or the grpc protocol has changed in a way
-            this module cannot handle.
     """
     def grpc_call(channel: grpc.Channel):
         if imports_pending:
@@ -1710,7 +1715,10 @@ def get_sleep_config(context: Optional[ChannelContext] = None) -> Tuple[int, int
         response = stub.Handle(Request(dish_get_config={}), timeout=REQUEST_TIMEOUT)
         return response.dish_get_config.dish_config
 
-    config = call_with_channel(grpc_call, context=context)
+    try:
+        config = call_with_channel(grpc_call, context=context)
+    except (AttributeError, ValueError, grpc.RpcError) as e:
+        raise GrpcError(e) from e
 
     return (config.power_save_start_minutes, config.power_save_duration_minutes,
             config.power_save_mode)
